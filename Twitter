@@ -1,0 +1,121 @@
+//import java.security.Timestamp;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.PriorityQueue;
+
+
+public class Twitter {
+	private int timestamp = 0;
+	private HashMap<Integer, User> userMap = new HashMap<>();
+	
+	private class Tweet {
+		int id;
+		int time;
+		Tweet next;
+		public Tweet(int id){
+			this.id = id;
+			this.time = timestamp++;
+			this.next = null;
+		}
+	}
+	
+	private class User {
+		int userId;
+		Tweet tHead;
+		HashSet<Integer> followed;
+		public User(int userId){
+			this.userId = userId;
+			this.tHead = null;
+			this.followed = new HashSet<>();
+			this.followed.add(userId);
+		}
+		
+		public void follow(int followeeId){
+			followed.add(followeeId);
+		}
+		
+		public void unfollow(int followeeId){
+			followed.remove(followeeId);
+		}
+	}
+	
+	public void postTweet(int userId, int id){
+		if(!userMap.containsKey(userId)){
+			userMap.put(userId, new User(userId));
+		}
+		User user = userMap.get(userId);
+		Tweet tweet = new Tweet(id);
+		tweet.next = user.tHead;
+		user.tHead = tweet;
+	}
+	
+	//Get the n most recent tweets from a user
+	public List<Integer> getTweets(int userId, int n){
+		List<Integer> result = new ArrayList<>();
+		if(!userMap.containsKey(userId)) {
+			return result;
+		}
+		PriorityQueue<Tweet> heap = new PriorityQueue<>(n, new Comparator<Tweet>() {
+			public int compare(Tweet t1, Tweet t2){
+				return t2.time - t1.time;
+			}
+		});
+		User user = userMap.get(userId);
+		for(Integer i:user.followed){
+			User curUser = userMap.get(i);
+			if(curUser.tHead != null){
+				heap.offer(curUser.tHead);
+			}
+		}
+		
+		for (int i = 0; i < n && !heap.isEmpty(); i++) {
+			Tweet curTweet = heap.poll();
+			result.add(curTweet.id);
+			if(curTweet.next != null) {
+				heap.offer(curTweet.next);
+			}
+		}
+		
+		return result;
+	}
+	
+	public void follow(int followerId, int followeeId){
+		if(!userMap.containsKey(followerId)){
+			userMap.put(followerId, new User(followerId));
+		}
+		if(!userMap.containsKey(followeeId)){
+			userMap.put(followeeId, new User(followeeId));
+		}
+		
+		User user = userMap.get(followerId);
+		user.follow(followeeId);
+	}
+	
+	public void unfollow(int followerId, int followeeId){
+		if (!userMap.containsKey(followerId) || !userMap.containsKey(followeeId) || followerId == followeeId) {
+			return;
+		}
+		User user = userMap.get(followerId);
+		user.unfollow(followeeId);
+	}
+	
+	public static void main(String[] args) {
+		// TODO Auto-generated method stub
+		Twitter twitter = new Twitter();
+		twitter.follow(0, 1);
+		twitter.follow(0, 2);
+		twitter.follow(2, 3);
+		twitter.follow(3, 1);
+		twitter.postTweet(1, 10);
+		twitter.postTweet(1, 11);
+		twitter.postTweet(3, 12);
+		twitter.postTweet(0, 13);
+		
+		twitter.unfollow(3, 1);
+		System.out.println(twitter.getTweets(2, 5));
+	}
+
+}
